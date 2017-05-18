@@ -20,6 +20,7 @@ type BuildConfig struct {
 	BuildFlags []string
 	Debug bool
 	OsArch string
+	ExeName string
 }
 
 type DependentPackage struct {

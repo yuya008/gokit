@@ -11,6 +11,10 @@ type CommandImport struct {
 	insecure bool
 }
 
+func init() {
+	commands["import"] = &CommandImport{}
+}
+
 func (ci *CommandImport) ParseArgs(args []string) (ok bool, error error) {
 	var option string
 	if len(args) < 1 {

@@ -18,6 +18,7 @@ const (
 var (
 	builder *buil.Builder
 	pwd string
+	commands map[string]Command = make(map[string]Command)
 )
 
 type Command interface {
@@ -49,19 +50,8 @@ func Execute() error {
 		usage()
 	}
 	args := os.Args[1:]
-	var command Command
-	switch args[0] {
-	case "version":
-		printVersion()
-	case "build":
-		command = &CommandBuild{}
-	case "run":
-	
-	case "test":
-	
-	case "import":
-		command = &CommandImport{}
-	default:
+	command, ok := commands[args[0]]
+	if !ok {
 		usage()
 	}
 	if ok, err := command.ParseArgs(os.Args[2:]); !ok {

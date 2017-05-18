@@ -40,6 +40,10 @@ const (
 	targetDir = "target"
 )
 
+func init() {
+	commands["build"] = &CommandBuild{}
+}
+
 func (cb *CommandBuild) ParseArgs(args []string) (ok bool, error error) {
 	var option string
 	defer func() {
@@ -149,7 +153,12 @@ func createBuildPackage(buildConfig conf.BuildConfig, version string) *bu.BuildP
 		OsArch: buildConfig.OsArch,
 	}
 	if bp.OutFile == "" {
-		bp.OutFile = path.Join(pwd, targetDir, version, mode, path.Base(bp.PackageName))
+		if buildConfig.ExeName != "" {
+			bp.OutFile = path.Join(pwd, targetDir, version, mode, buildConfig.ExeName)
+		} else {
+			packageNameSlice := packageNameSplit(bp.PackageName)
+			bp.OutFile = path.Join(pwd, targetDir, version, mode, packageNameSlice[len(packageNameSlice) - 1])
+		}
 		os.MkdirAll(path.Dir(bp.OutFile), dirMode)
 	}
 	return bp
@@ -240,4 +249,8 @@ func dirCopy(dest, src string) error {
 		}
 		return nil
 	})
+}
+
+func packageNameSplit(s string) []string {
+	return strings.Split(s, "/")
 }
