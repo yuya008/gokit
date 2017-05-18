@@ -3,7 +3,7 @@ package command
 import (
 	"os"
 	"fmt"
-	buil "git.oschina.net/yuya008/gokit/builder"
+	buil "github.com/yuya008/gokit/builder"
 	"os/user"
 	"path"
 )

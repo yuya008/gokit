@@ -1,7 +1,7 @@
 package main
 
 import (
-	"git.oschina.net/yuya008/gokit/command"
+	"github.com/yuya008/gokit/command"
 	"os"
 	"log"
 )

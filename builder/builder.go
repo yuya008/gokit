@@ -5,6 +5,7 @@ import (
 	"os"
 	"fmt"
 	"errors"
+	"strings"
 )
 
 type Builder struct {
@@ -26,6 +27,7 @@ type BuildPackage struct {
 	PackageName string
 	OutFile string
 	BuildFlags []string
+	OsArch string
 }
 
 func NewBuilder(goPath string) (*Builder, error) {
@@ -66,7 +68,7 @@ func (b *Builder) Build(c chan <- string) error {
 	for _, project := range b.projects {
 		if err := func() error {
 			for _, pkg := range project.BuildPackages {
-				if err := b.toBuild(pkg.BuildFlags, pkg.PackageName, pkg.OutFile, c); err != nil {
+				if err := b.toBuild(pkg, c); err != nil {
 					return err
 				}
 			}
@@ -97,7 +99,7 @@ func (b *Builder) linkProject(project *Project) error {
 	return nil
 }
 
-func (b *Builder) toBuild(buildFlags []string, packageName, outfile string, c chan <- string) error {
+func (b *Builder) toBuild(bpkg *BuildPackage, c chan <- string) error {
 	goTools, err := NewGoTools(GoBuild, b.goPath)
 	if err != nil {
 		return err
@@ -107,9 +109,15 @@ func (b *Builder) toBuild(buildFlags []string, packageName, outfile string, c ch
 			c <- goTools.String()
 		}
 	}()
-	goTools.AddBuildFlags("-o", outfile)
-	goTools.AddBuildFlags(buildFlags...)
-	goTools.AddPackageNames(packageName)
+	goTools.AddBuildFlags("-o", bpkg.OutFile)
+	goTools.AddBuildFlags(bpkg.BuildFlags...)
+	if bpkg.OsArch != "" {
+		osarch := strings.Split(bpkg.OsArch, "/")
+		goTools.AddEnvVar("CGO_ENABLED", "0")
+		goTools.AddEnvVar("GOOS", osarch[0])
+		goTools.AddEnvVar("GOARCH", osarch[1])
+	}
+	goTools.AddPackageNames(bpkg.PackageName)
 	if s, ok := goTools.Run(); !ok {
 		return errors.New(s)
 	}

@@ -2,10 +2,10 @@ package command
 
 import (
 	"fmt"
-	"git.oschina.net/yuya008/gokit/conf"
+	"github.com/yuya008/gokit/conf"
 	"path"
 	"strings"
-	bu "git.oschina.net/yuya008/gokit/builder"
+	bu "github.com/yuya008/gokit/builder"
 	"os"
 	"path/filepath"
 	"io"
@@ -146,6 +146,7 @@ func createBuildPackage(buildConfig conf.BuildConfig, version string) *bu.BuildP
 		PackageName: buildConfig.Name,
 		BuildFlags: buildFlags,
 		OutFile: buildConfig.OutFile,
+		OsArch: buildConfig.OsArch,
 	}
 	if bp.OutFile == "" {
 		bp.OutFile = path.Join(pwd, targetDir, version, mode, path.Base(bp.PackageName))
@@ -181,8 +182,8 @@ func dependentHandle(conf *conf.Conf) error {
 		fmt.Println()
 	}
 	for _, dep := range conf.Dependent {
-		fmt.Printf("---> %s\n", dep.Name)
 		if dep.Version != "" {
+			fmt.Printf("process ---> %s [%s]\n", dep.Name, dep.Version)
 			if pkg, ok := builder.Packager.Lookup(dep.Name); ok {
 				destDir := path.Join(pwd, "vendor", dep.Name)
 				if _, err := os.Stat(destDir); err == nil {
@@ -198,13 +199,20 @@ func dependentHandle(conf *conf.Conf) error {
 			} else {
 				fmt.Printf("%s not found\n", dep.Name)
 			}
+		} else {
+			fmt.Printf("process ---> %s\n", dep.Name)
 		}
 	}
+	fmt.Println()
 	return nil
 }
 
 func dirCopy(dest, src string) error {
-	os.MkdirAll(dest, dirMode)
+	if f, err := os.Stat(src); err == nil {
+		os.MkdirAll(dest, f.Mode())
+	} else {
+		return err
+	}
 	return filepath.Walk(src, func(file string, info os.FileInfo, err error) error {
 		if src == file {
 			return nil
