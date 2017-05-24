@@ -7,8 +7,6 @@ import (
 	"strings"
 	bu "github.com/yuya008/gokit/builder"
 	"os"
-	"path/filepath"
-	"io"
 )
 
 type CommandBuild struct {
@@ -16,7 +14,7 @@ type CommandBuild struct {
 	conf *conf.Conf
 }
 
-var platforms = map[string]bool {
+var crossPlatforms = map[string]bool {
 	"darwin/386": true,
 	"darwin/amd64": true,
 	"linux/386": true,
@@ -87,7 +85,7 @@ func (cb *CommandBuild) Run() error {
 	for s := range ch {
 		fmt.Println(s)
 	}
-	builder.Clean()
+	//builder.Clean()
 	return nil
 }
 
@@ -125,7 +123,7 @@ func loadAndCheckConffile(file string) (*conf.Conf, error) {
 		}
 		if config.OsArch != "" {
 			config.OsArch = strings.ToLower(config.OsArch)
-			if _, ok := platforms[config.OsArch]; !ok {
+			if _, ok := crossPlatforms[config.OsArch]; !ok {
 				return nil, newConfError("'%s' invalid", config.OsArch)
 			}
 		}
@@ -198,13 +196,13 @@ func dependentHandle(conf *conf.Conf) error {
 				if _, err := os.Stat(destDir); err == nil {
 					os.RemoveAll(destDir)
 				}
-				if err := builder.Packager.Checkout(dep.Name, dep.Version); err != nil {
+				if err := pkg.Checkout(dep.Version); err != nil {
 					return fmt.Errorf("checkout %s failure", dep.Version)
 				}
-				if err := dirCopy(destDir, pkg.PackageSource); err != nil {
+				if err := pkg.CopyTo(destDir); err != nil {
 					return err
 				}
-				builder.Packager.Checkout(dep.Name, "master")
+				pkg.Checkout("master")
 			} else {
 				fmt.Printf("%s not found\n", dep.Name)
 			}
@@ -214,41 +212,6 @@ func dependentHandle(conf *conf.Conf) error {
 	}
 	fmt.Println()
 	return nil
-}
-
-func dirCopy(dest, src string) error {
-	if f, err := os.Stat(src); err == nil {
-		os.MkdirAll(dest, f.Mode())
-	} else {
-		return err
-	}
-	return filepath.Walk(src, func(file string, info os.FileInfo, err error) error {
-		if src == file {
-			return nil
-		}
-		suffix := strings.Replace(file, src, "", -1)
-		newFile := path.Join(dest, suffix)
-		if info.IsDir() {
-			if err := os.MkdirAll(newFile, info.Mode()); err != nil {
-				return err
-			}
-		} else {
-			nf, err := os.OpenFile(newFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode())
-			if err != nil {
-				return err
-			}
-			defer nf.Close()
-			of, err := os.Open(file)
-			if err != nil {
-				return err
-			}
-			defer of.Close()
-			if _, err := io.Copy(nf, of); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
 }
 
 func packageNameSplit(s string) []string {

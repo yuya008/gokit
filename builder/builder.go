@@ -100,11 +100,16 @@ func (b *Builder) linkProject(project *Project) error {
 }
 
 func (b *Builder) toBuild(bpkg *BuildPackage, c chan <- string) error {
+	var s string
+	var ok bool
 	goTools, err := NewGoTools(GoBuild, b.goPath)
 	if err != nil {
 		return err
 	}
 	defer func() {
+		if s != "" {
+			c <- s
+		}
 		if c != nil {
 			c <- goTools.String()
 		}
@@ -118,7 +123,8 @@ func (b *Builder) toBuild(bpkg *BuildPackage, c chan <- string) error {
 		goTools.AddEnvVar("GOARCH", osarch[1])
 	}
 	goTools.AddPackageNames(bpkg.PackageName)
-	if s, ok := goTools.Run(); !ok {
+	s, ok = goTools.Run()
+	if !ok {
 		return errors.New(s)
 	}
 	return nil

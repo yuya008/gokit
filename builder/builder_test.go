@@ -83,7 +83,11 @@ func TestBuilder_Build(t *testing.T) {
 }
 
 func TestPackager_Checkout(t *testing.T) {
-	if err := builder.Packager.Checkout("git.oschina.net/yuya008/testimport", "v0.0.1"); err != nil {
+	pkg, err := builder.Packager.Lookup("git.oschina.net/yuya008/testimport")
+	if err != nil {
+		t.Error(err)
+	}
+	if err := pkg.Checkout("v0.0.1"); err != nil {
 		t.Error(err)
 	}
 }
@@ -98,7 +102,7 @@ func TestBuilder_Build2(t *testing.T) {
 			&BuildPackage{
 				PackageName: "github.com/jack/hi",
 				OutFile: path.Join(pwd, demoDir, "hi2.out"),
-				BuildFlags: []string{"-gcflags", "-N -l"},
+				BuildFlags: []string{"-gcflags", "`-N -l`"},
 			},
 		},
 	})

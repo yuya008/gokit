@@ -85,38 +85,37 @@ func (p *Packager) Pull(packageName string, insecure bool) error {
 	return nil
 }
 
-func (p *Packager) Checkout(packageName string, v string) error {
-	if packageName == "" || v == "" {
-		return nil
-	}
-	if !p.kvStorage.Exist(packageName) {
-		return fmt.Errorf("%s not exist", packageName)
-	}
-	pkg := &Package{}
-	if err := p.kvStorage.Get(packageName, pkg); err != nil {
-		return err
-	}
-	if f, err := os.Stat(pkg.PackageSource); err != nil || !f.IsDir() {
-		p.kvStorage.Delete(packageName)
-		return fmt.Errorf("%s not found", packageName)
-	}
-	if s, err := gitCheckOut(pkg.PackageSource, v); err != nil {
-		return errors.New(s)
-	}
-	return nil
-}
-
 func (p *Packager) Lookup(packageName string) (*Package, bool) {
 	pkg := &Package{}
 	if err := p.kvStorage.Get(packageName, pkg); err != nil {
 		return nil, false
 	}
+	pkg.packager = p
 	return pkg, true
 }
 
 type Package struct {
 	PackageName string
 	PackageSource string
+	packager *Packager
+}
+
+func (pkg *Package) Checkout(version string) error {
+	if version == "" {
+		return nil
+	}
+	if f, err := os.Stat(pkg.PackageSource); err != nil || !f.IsDir() {
+		pkg.packager.kvStorage.Delete(pkg.PackageName)
+		return fmt.Errorf("%s not found", pkg.PackageName)
+	}
+	if s, err := gitCheckOut(pkg.PackageSource, version); err != nil {
+		return errors.New(s)
+	}
+	return nil
+}
+
+func (pkg *Package) CopyTo(destDir string) error {
+	return dirCopy(destDir, pkg.PackageSource)
 }
 
 func checkFromLocalSourcePackage(source string) error {
@@ -144,7 +143,11 @@ func gitCheckOut(rootDir, v string) (string, error) {
 }
 
 func dirCopy(dest, src string) error {
-	os.MkdirAll(dest, dirMode)
+	if f, err := os.Stat(src); err == nil {
+		os.MkdirAll(dest, f.Mode())
+	} else {
+		return err
+	}
 	return filepath.Walk(src, func(file string, info os.FileInfo, err error) error {
 		if src == file {
 			return nil

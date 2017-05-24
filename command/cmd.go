@@ -81,8 +81,3 @@ Command:
      version     工具版本信息`)
 	os.Exit(1)
 }
-
-func printVersion() {
-	fmt.Printf("%s v%s\n", ProjectName, Version)
-	os.Exit(0)
-}
