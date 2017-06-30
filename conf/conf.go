@@ -10,25 +10,17 @@ import (
 )
 
 type Conf struct {
-	Title string				`toml:"title"`
-	Binary []*BinaryConf		`toml:"binary"`
 	Package *PackageConf    	`toml:"package"`
 	Dependent []*DependentConf	`toml:"dependent"`
 }
 
-type BinaryConf struct {
+type PackageConf struct {
 	Name string			`toml:"name"`
 	Version string		`toml:"version"`
 	Debug bool			`toml:"debug,omitempty"`
-	BuildFlags string	`toml:"buildFlags,omitempty"`
 	OutFile string		`toml:"outFile,omitempty"`
 	OsArch string       `toml:"osarch,omitempty"`
 	ExeName string      `toml:"exeName,omitempty"`
-}
-
-type PackageConf struct {
-	Name string 		`toml:"name"`
-	Version string		`toml:"version"`
 }
 
 type DependentConf struct {
@@ -57,20 +49,11 @@ func LoadConfFile(file string) (*Conf, error) {
 }
 
 func (c *Conf) verification() error {
-	if c.Title == "" {
-		return errors.New("`title` no set")
+	if c.Package.Name == "" {
+		return errors.New("[package.name] no set")
 	}
-	if len(c.Binary) > 0 {
-		for i, bin := range c.Binary {
-			if bin.Name == "" {
-				return fmt.Errorf("%d [[Binary]] `name` no set", i)
-			}
-			if bin.Version == "" {
-				return fmt.Errorf("%d [[Binary]] `version` no set", i)
-			}
-		}
-	} else if c.Package.Name == "" {
-		return errors.New("[[Binary]] or [Package] no set")
+	if c.Package.Version == "" {
+		return errors.New("[package.version] no set")
 	}
 	return nil
 }

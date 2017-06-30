@@ -56,13 +56,8 @@ func (cb *CommandBuild) Run() error {
 	if err := dependentHandle(cb.conf); err != nil {
 		return err
 	}
-	if len(cb.conf.Binary) <= 0 {
-		return nil
-	}
 	if cb.release {
-		for i := 0; i < len(cb.conf.Binary); i++ {
-			cb.conf.Binary[i].Debug = false
-		}
+		cb.conf.Package.Debug = false
 	}
 	if err := builder.AddProject(createProject(cb.conf, pwd)); err != nil {
 		return err
@@ -78,6 +73,7 @@ func (cb *CommandBuild) Run() error {
 		fmt.Println(s)
 	}
 	builder.Clean()
+	fmt.Println("build success!")
 	return nil
 }
 
@@ -96,27 +92,27 @@ func newConfError(format string, a ...interface{}) error {
 	return fmt.Errorf(confFileName + " : " + format, a...)
 }
 
-func createBuildPackage(buildConfig *conf.BinaryConf) *bu.BuildPackage {
+func createBuildPackage(packageConf *conf.PackageConf) *bu.BuildPackage {
 	var buildFlags []string
 	var mode string
-	if buildConfig.Debug {
+	if packageConf.Debug {
 		buildFlags = []string{"-gcflags", "-N -l"}
 		mode = "debug"
 	} else {
 		mode = "release"
 	}
 	bp := &bu.BuildPackage{
-		PackageName: buildConfig.Name,
+		PackageName: packageConf.Name,
 		BuildFlags: buildFlags,
-		OutFile: buildConfig.OutFile,
-		OsArch: buildConfig.OsArch,
+		OutFile: packageConf.OutFile,
+		OsArch: packageConf.OsArch,
 	}
 	if bp.OutFile == "" {
-		if buildConfig.ExeName != "" {
-			bp.OutFile = path.Join(pwd, targetDir, buildConfig.Version, mode, buildConfig.ExeName)
+		if packageConf.ExeName != "" {
+			bp.OutFile = path.Join(pwd, targetDir, packageConf.Version, mode, packageConf.ExeName)
 		} else {
 			packageNameSlice := packageNameSplit(bp.PackageName)
-			bp.OutFile = path.Join(pwd, targetDir, buildConfig.Version, mode, packageNameSlice[len(packageNameSlice) - 1])
+			bp.OutFile = path.Join(pwd, targetDir, packageConf.Version, mode, packageNameSlice[len(packageNameSlice) - 1])
 		}
 		os.MkdirAll(path.Dir(bp.OutFile), dirMode)
 	}
@@ -125,15 +121,9 @@ func createBuildPackage(buildConfig *conf.BinaryConf) *bu.BuildPackage {
 
 func createProject(conf *conf.Conf, src string) *bu.Project {
 	project := &bu.Project{}
-	project.Name = conf.Binary[0].Name
+	project.Name = conf.Package.Name
 	project.Source = src
-
-	for _, bc := range conf.Binary {
-		project.BuildPackages = append(
-			project.BuildPackages,
-			createBuildPackage(bc),
-		)
-	}
+	project.BuildPackages = append(project.BuildPackages, createBuildPackage(conf.Package))
 	return project
 }
 

@@ -1,6 +1,4 @@
-title = "gokit configuration file"
-
-[[binary]]
+[package]
   name = "github.com/yuya008/gokit"
   version = "v0.0.1"
   debug = true
@@ -11,7 +9,7 @@ title = "gokit configuration file"
 
 [[dependent]]
   source = "gopkg.in/urfave/cli.v2"
-  version = "v2"
+  version = "master"
 
 [[dependent]]
   source = "github.com/BurntSushi/toml"

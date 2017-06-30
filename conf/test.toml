@@ -1,7 +1,7 @@
 # This is a TOML document.
 title = "gokit configuration file"
 
-[[package]]
+[package]
 name = "github.com/yuya008/gokit/conf"
 version = "v0.0.1"
 debug = true

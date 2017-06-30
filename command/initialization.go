@@ -16,7 +16,6 @@ import (
 type Initialization struct {
 	name string
 	version string
-	isPackage bool
 }
 
 func init() {
@@ -28,7 +27,6 @@ func init() {
 			init := &Initialization{
 				name: context.String("name"),
 				version: context.String("version"),
-				isPackage: context.Bool("package"),
 			}
 			return init.Run()
 		},
@@ -41,17 +39,19 @@ func init() {
 				Name: "version",
 				Usage: "set the package version(e.g. v1.0.0)",
 			},
-			&cli.BoolFlag{
-				Name: "package",
-				Usage: "set to package configuration file",
-			},
 		},
 	})
 }
 
 func (init *Initialization) Run() error {
 	init.askInitInfo()
-	c := init.createConf()
+	c := &conf.Conf{
+		Package: &conf.PackageConf{
+			Name: init.name,
+			Version: init.version,
+			Debug: true,
+		},
+	}
 	depPackage, err := scanDependencyPackage(init.name)
 	if err != nil {
 		return err
@@ -79,30 +79,6 @@ func (init *Initialization) askInitInfo() {
 		fmt.Println("Please enter a package version(e.g. v1.0.0):")
 		readAnswer(&init.version)
 	}
-}
-
-func (init *Initialization) createConf() *conf.Conf {
-	var c *conf.Conf
-	if init.isPackage {
-		c = &conf.Conf{
-			Title: "gokit configuration file",
-			Package: &conf.PackageConf{
-				Name: init.name,
-				Version: init.version,
-			},
-		}
-	} else {
-		c = &conf.Conf{
-			Title: "gokit configuration file",
-			Binary: []*conf.BinaryConf{
-				&conf.BinaryConf{
-					Name: init.name,
-					Version: init.version,
-				},
-			},
-		}
-	}
-	return c
 }
 
 func scanDependencyPackage(name string) ([]string, error) {
