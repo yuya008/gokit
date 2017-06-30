@@ -8,12 +8,12 @@ import (
 )
 
 const (
-	testJson = "test.json"
+	testJson = "test.toml"
 )
 
 var (
 	pwd string
-	conf *Conf
+	c *Conf
 )
 
 func init() {
@@ -26,13 +26,36 @@ func init() {
 
 func TestLoadConfFile(t *testing.T) {
 	var err error
-	if conf, err = LoadConfFile(path.Join(pwd, testJson)); err != nil {
+	if c, err = LoadConfFile(path.Join(pwd, testJson)); err != nil {
 		t.Error(err)
+	} else {
+		t.Log(c)
 	}
 }
 
 func TestConf_Dump(t *testing.T) {
-	t.Log(conf.Dump())
+	c := Conf{}
+	s, err := c.Dump()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(s)
 }
 
+func TestNewBinaryConfTemplate(t *testing.T) {
+	c := NewBinaryConfTemplate()
+	s, err := c.Dump()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(s)
+}
 
+func TestNewPackageConfTemplate(t *testing.T) {
+	c := NewPackageConfTemplate()
+	s, err := c.Dump()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(s)
+}

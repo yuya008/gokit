@@ -22,6 +22,8 @@ const (
 	dataFileName = ".db"
 )
 
+var PkgExist = errors.New("package already exist")
+
 func NewPackager(dir string) (*Packager, error) {
 	if err := os.MkdirAll(dir, dirMode); err != nil {
 		return nil, err
@@ -44,7 +46,7 @@ func (p *Packager) Import(packageName, source string) error {
 		return err
 	}
 	if p.kvStorage.Exist(packageName) {
-		return fmt.Errorf("%s already exist", packageName)
+		return PkgExist
 	}
 	packagePath := path.Join(p.dir, packageName)
 	if err := dirCopy(packagePath, source); err != nil {
@@ -63,7 +65,7 @@ func (p *Packager) Pull(packageName string, insecure bool) error {
 		return nil
 	}
 	if p.kvStorage.Exist(packageName) {
-		return fmt.Errorf("%s already exist", packageName)
+		return PkgExist
 	}
 	tools, err := NewGoTools(GoGet, p.dir)
 	if err != nil {

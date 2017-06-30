@@ -3,71 +3,78 @@ package command
 import (
 	"fmt"
 	"os"
+	"gopkg.in/urfave/cli.v2"
+	"errors"
+	"path"
+	bu "github.com/yuya008/gokit/builder"
 )
 
 type CommandImport struct {
 	packageName string
 	source string
 	insecure bool
+	cache bool
 }
 
 func init() {
-	commands["import"] = &CommandImport{}
-}
-
-func (ci *CommandImport) ParseArgs(args []string) (ok bool, error error) {
-	var option string
-	if len(args) < 1 {
-		return false, nil
-	}
-
-	defer func() {
-		if err := recover(); err != nil {
-			ok = false
-			error = fmt.Errorf("'%s' option value invalid", option)
-		}
-	}()
-
-	ci.packageName = args[len(args) - 1]
-	args = args[:len(args) - 1]
-	for i := 0; i < len(args); i++ {
-		option = args[i]
-		switch option {
-		case "--source":
-			i++
-			ci.source = args[i]
-		case "--insecure":
-			ci.insecure = true
-		case "--help", "-h":
-			return false, nil
-		default:
-			return false, fmt.Errorf("%s invalid option", args[i])
-		}
-	}
-	return true, nil
+	commands = append(commands, &cli.Command{
+		Name: "import",
+		Usage: "import a package",
+		Aliases: []string{"c"},
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name: "source",
+				Usage: "from a local source code import a package",
+			},
+			&cli.BoolFlag{
+				Name: "insecure",
+				Usage: "from a secure connection to download package",
+			},
+			&cli.BoolFlag{
+				Name: "cache",
+				Usage: "only import to cache",
+			},
+		},
+		Action: func(context *cli.Context) error {
+			ci := &CommandImport{}
+			ci.source = context.String("source")
+			ci.insecure = context.Bool("insecure")
+			ci.cache = context.Bool("cache")
+			args := context.Args()
+			if args.Len() <= 0 {
+				return errors.New("You must specify the package name")
+			}
+			ci.packageName = args.First()
+			return ci.Run()
+		},
+	})
 }
 
 func (ci *CommandImport) Run() error {
 	if ci.source == "" {
-		builder.Packager.Pull(ci.packageName, ci.insecure)
+		fmt.Printf("pull package [%s] \n", ci.packageName)
+		if err := builder.Packager.Pull(ci.packageName, ci.insecure); err != nil {
+			if err != bu.PkgExist {
+				return err
+			}
+			fmt.Printf("already cached [%s] \n", ci.packageName)
+		}
 	} else {
 		if f, err := os.Stat(ci.source); err != nil || !f.IsDir() {
 			return fmt.Errorf("%s invalid", ci.source)
 		}
+		fmt.Printf("import package to cache [%s] \n", ci.packageName)
 		if err := builder.Packager.Import(ci.packageName, ci.source); err != nil {
 			return err
 		}
 	}
+	if !ci.cache {
+		pkg, ok := builder.Packager.Lookup(ci.packageName)
+		if !ok {
+			return fmt.Errorf("%s not found", ci.packageName)
+		}
+		fmt.Printf("import project to vendor dir [%s] \n", ci.packageName)
+		pkg.CopyTo(path.Join(pwd, "vendor", ci.packageName))
+	}
 	return nil
-}
-
-func (ci *CommandImport) Usage() string {
-	return `gokit import 导入包
-Usage:
-	gokit import [options] [package]
-Options:
-	--source [dir]   从本地源代码导入一个包
-	--insecure       从非安全连接下载包
-	--help, -h       帮助信息
-`
 }

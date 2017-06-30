@@ -3,30 +3,38 @@ package conf
 import (
 	"os"
 	"io/ioutil"
-	"encoding/json"
 	"fmt"
+	"github.com/BurntSushi/toml"
+	"errors"
+	"bytes"
 )
 
 type Conf struct {
-	Name string
-	Version string
-	BuildConfig []BuildConfig
-	Dependent []DependentPackage
+	Title string				`toml:"title"`
+	Binary []*BinaryConf		`toml:"binary"`
+	Package *PackageConf    	`toml:"package"`
+	Dependent []*DependentConf	`toml:"dependent"`
 }
 
-type BuildConfig struct {
-	Name string
-	OutFile string
-	BuildFlags []string
-	Debug bool
-	OsArch string
-	ExeName string
+type BinaryConf struct {
+	Name string			`toml:"name"`
+	Version string		`toml:"version"`
+	Debug bool			`toml:"debug,omitempty"`
+	BuildFlags string	`toml:"buildFlags,omitempty"`
+	OutFile string		`toml:"outFile,omitempty"`
+	OsArch string       `toml:"osarch,omitempty"`
+	ExeName string      `toml:"exeName,omitempty"`
 }
 
-type DependentPackage struct {
-	Name string
-	Version string
-	Insecure bool
+type PackageConf struct {
+	Name string 		`toml:"name"`
+	Version string		`toml:"version"`
+}
+
+type DependentConf struct {
+	Source string 		`toml:"source"`
+	Version string 		`toml:"version"`
+	Insecure bool       `toml:"insecure,omitempty"`
 }
 
 func LoadConfFile(file string) (*Conf, error) {
@@ -38,14 +46,44 @@ func LoadConfFile(file string) (*Conf, error) {
 	if err != nil {
 		return nil, err
 	}
-	conf := &Conf{}
-	if err := json.Unmarshal(b, conf); err != nil {
+	p := &Conf{}
+	if err := toml.Unmarshal(b, p); err != nil {
 		return nil, err
 	}
-	return conf, nil
+	if err := p.verification(); err != nil {
+		return nil, err
+	}
+	return p, nil
 }
 
-func (c *Conf) Dump() string {
+func (c *Conf) verification() error {
+	if c.Title == "" {
+		return errors.New("`title` no set")
+	}
+	if len(c.Binary) > 0 {
+		for i, bin := range c.Binary {
+			if bin.Name == "" {
+				return fmt.Errorf("%d [[Binary]] `name` no set", i)
+			}
+			if bin.Version == "" {
+				return fmt.Errorf("%d [[Binary]] `version` no set", i)
+			}
+		}
+	} else if c.Package.Name == "" {
+		return errors.New("[[Binary]] or [Package] no set")
+	}
+	return nil
+}
+
+func (c *Conf) String() string {
 	return fmt.Sprintf("%v", c)
 }
 
+func (c *Conf) Dump() (string, error) {
+	buffer := bytes.NewBufferString("")
+	encoder := toml.NewEncoder(buffer)
+	if err := encoder.Encode(c); err != nil {
+		return "", err
+	}
+	return buffer.String(), nil
+}

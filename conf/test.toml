@@ -1,0 +1,19 @@
+# This is a TOML document.
+title = "gokit configuration file"
+
+[[package]]
+name = "github.com/yuya008/gokit/conf"
+version = "v0.0.1"
+debug = true
+buildFlags = "-gcflags '-S'"
+out = ""
+
+[[dependent]]
+source = "github.com/yuya008/a/b"
+
+[[dependent]]
+source = "github.com/yuya008/c/d"
+
+[[dependent]]
+source = "github.com/yuya008/e/f"
+version = "v1.1"

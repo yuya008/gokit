@@ -6,6 +6,7 @@ import (
 	buil "github.com/yuya008/gokit/builder"
 	"os/user"
 	"path"
+	"gopkg.in/urfave/cli.v2"
 )
 
 const (
@@ -18,7 +19,10 @@ const (
 var (
 	builder *buil.Builder
 	pwd string
-	commands map[string]Command = make(map[string]Command)
+	Authors = map[string]string{
+		"ArthurYu": "yuya008@aliyun.com",
+	}
+	commands []*cli.Command
 )
 
 type Command interface {
@@ -46,38 +50,24 @@ func init() {
 }
 
 func Execute() error {
-	if len(os.Args) <= 1 {
-		usage()
+	gokitApp := cli.App{
+		Name: ProjectName,
+		Version: Version,
+		Usage: "Go project build tools",
+		Authors: authors(),
+		Commands: commands,
 	}
-	args := os.Args[1:]
-	command, ok := commands[args[0]]
-	if !ok {
-		usage()
-	}
-	if ok, err := command.ParseArgs(os.Args[2:]); !ok {
-		fmt.Print(command.Usage())
-		if err != nil {
-			fmt.Println(err)
-		}
-		os.Exit(1)
-	}
-	if err := command.Run(); err != nil {
-		fmt.Println(err)
-	}
-	return nil
+	return gokitApp.Run(os.Args)
 }
 
-func usage() {
-	fmt.Println(`-----
-gokit Go 工程构建工具链
------
-Usgae:
-     gokit command [args]
-Command:
-     build       编译构建包
-     run         编译构建包，并运行
-     test        测试包
-     import      导入包
-     version     工具版本信息`)
-	os.Exit(1)
+func authors() []*cli.Author {
+	var ret []*cli.Author
+	for author, email := range Authors {
+		ret = append(ret, &cli.Author{
+			Name: author,
+			Email: email,
+		})
+	}
+	return ret
 }
+
